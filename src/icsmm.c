@@ -10,6 +10,7 @@
  * This will allow ics_freelist_print to access the value from a different file.
  */
 ics_free_header *freelist_head = NULL;
+int first_request = 1;
 
 /*
  * This is your implementation of malloc. It acquires uninitialized memory from  
@@ -25,6 +26,23 @@ ics_free_header *freelist_head = NULL;
  * an invalid request.
  */
 void *ics_malloc(size_t size) {
+    // if size == 0, errno = EINVAL and return NULL
+    // get memory size we will need to fulfill request (accounting for first request)
+    // if we don't have enough memory or head ptr is NULL
+        // ask for more pages
+            // if asking fail return NULL (errno is already ENOMEM)
+            // set epilogue accordingly
+            // set available space as one free block (whose next ptr is NULL)
+            // if head ptr is NULL set head to this free block
+    // if first request
+        // set prologue
+        // set prev to NULL
+        // set first_request to 0
+    // if we can split without splinters, split the block
+        // set this block allocated
+        // set next block unallocated
+        // add next block to list
+    // set head to next ptr
     return NULL;
 }
 
