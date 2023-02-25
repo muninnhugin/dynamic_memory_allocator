@@ -61,13 +61,17 @@ void* ics_malloc(size_t size) {
 
     // traverse the list to find first fit block
     ics_free_header* cur_header = freelist_head;
+    while(cur_header != NULL)
+    {
+        if(cur_header->header.block_size >= block_size) {
+            allocate(cur_header, block_size, padding);
+            break;
+        }
+        cur_header = cur_header->next;
+    }
 
-    set_allocated_block(freelist_head, block_size, padding);
-    // if we can split without splinters, split the block
-        // set this block allocated
-        // set next block unallocated
-        // add next block to list
-    // set head to next ptr
+    // TODO: need to handle when we reach end of list and need to ask for more memory
+
     return cur_header;
 }
 
