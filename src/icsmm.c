@@ -4,13 +4,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+int first_request = 1;
+unsigned int available_mem = 0;
+
 /*
  * The allocator MUST store the head of its free list in this variable. 
  * Doing so will make it accessible via the extern keyword.
  * This will allow ics_freelist_print to access the value from a different file.
  */
 ics_free_header *freelist_head = NULL;
-int first_request = 1;
 
 /*
  * This is your implementation of malloc. It acquires uninitialized memory from  
@@ -25,25 +27,48 @@ int first_request = 1;
  * If size is 0, then NULL is returned and errno is set to EINVAL - representing
  * an invalid request.
  */
-void *ics_malloc(size_t size) {
+void* ics_malloc(size_t size) {
     // if size == 0, errno = EINVAL and return NULL
+    if(size == 0)
+    {
+        errno = EINVAL;
+        return NULL;
+    }
     // get memory size we will need to fulfill request (accounting for first request)
-    // if we don't have enough memory or head ptr is NULL
+    unsigned int block_size;
+    unsigned int padding;
+    get_total_block_size(size, &block_size, &padding);
+    // if head ptr is NULL -- no free blocks of memory left
+    if(freelist_head == NULL)
+    {
+        unsigned int num_of_pages = ceiling(block_size + PROLOGUE_SIZE + EPILOGUE_SIZE, PAGE_SIZE);
         // ask for more pages
-            // if asking fail return NULL (errno is already ENOMEM)
-            // set epilogue accordingly
-            // set available space as one free block (whose next ptr is NULL)
-            // if head ptr is NULL set head to this free block
-    // if first request
-        // set prologue
-        // set prev to NULL
-        // set first_request to 0
+        void* new_page_address = ics_inc_brk(num_of_pages);
+        // if asking fail return NULL (errno is already ENOMEM)
+        if(new_page_address == (void*) -1) return NULL;
+        // set epilogue accordingly
+        set_epilogue(ics_get_brk() - EPILOGUE_SIZE);
+        // set available space as one free block (whose next ptr is NULL)
+        void* block_address = new_page_address;
+        if(first_request){
+            set_prologue(new_page_address);
+            block_address += PROLOGUE_SIZE;
+            first_request = 0;
+        }
+        set_free_block(block_address, (num_of_pages * PAGE_SIZE) - EPILOGUE_SIZE - PROLOGUE_SIZE, NULL, NULL);
+        freelist_head = block_address;
+    }
+
+    // traverse the list to find first fit block
+    ics_free_header* cur_header = freelist_head;
+
+    set_allocated_block(freelist_head, block_size, padding);
     // if we can split without splinters, split the block
         // set this block allocated
         // set next block unallocated
         // add next block to list
     // set head to next ptr
-    return NULL;
+    return cur_header;
 }
 
 /*
@@ -56,7 +81,8 @@ void *ics_malloc(size_t size) {
  * 
  * @return 0 upon success, -1 if error and set errno accordingly.
  */
-int ics_free(void *ptr) { 
+int ics_free(void *ptr) {
+    // research immediate reverse coalescing
     return -99999;
 }
 
