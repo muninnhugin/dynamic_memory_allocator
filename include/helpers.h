@@ -24,5 +24,6 @@ unsigned int get_size_from_block_size(unsigned int block_size);
 void set_allocated_block(void* block_address, unsigned int block_size, unsigned int padding);
 void set_free_block(void* block_address, unsigned int block_size, ics_free_header* next, ics_free_header* prev);
 void insert_head(void* block_address, unsigned int block_size);
+void allocate(void* original_block_address, unsigned int block_size, unsigned int padding);
 
 #endif

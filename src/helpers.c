@@ -84,3 +84,21 @@ void insert_head(void* block_address, unsigned int block_size)
     freelist_head = block_address;
 }
 
+void allocate(void* original_block_address, unsigned int block_size, unsigned int padding)
+{
+    ics_free_header* original_block = original_block_address;
+    unsigned int leftover_memory = original_block->header.block_size - block_size;
+    if(leftover_memory < 32) // allocate everything to request
+    {
+        set_allocated_block(original_block_address,
+                            block_size + leftover_memory, padding + leftover_memory);
+        return;
+    }
+    else    // split
+    {
+        set_allocated_block(original_block, block_size, padding);
+        void* new_block_addr = original_block_address + block_size;
+        set_free_block(new_block_addr, leftover_memory, NULL, NULL);
+        insert_head(new_block_addr, leftover_memory);
+    }
+}
