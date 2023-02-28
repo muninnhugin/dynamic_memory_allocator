@@ -79,12 +79,12 @@ void set_free_block(void* block_address, unsigned int block_size,
 
 void insert_head(void* block_address, unsigned int block_size)
 {
-    freelist_head->prev = block_address;
+    if(freelist_head)   freelist_head->prev = block_address;
     set_free_header(block_address, block_size, freelist_head, NULL);
     freelist_head = block_address;
 }
 
-void allocate(void* original_block_address, unsigned int block_size, unsigned int padding)
+void* allocate(void* original_block_address, unsigned int block_size, unsigned int padding)
 {
     ics_free_header* original_block = original_block_address;
     unsigned int leftover_memory = original_block->header.block_size - block_size;
@@ -92,13 +92,36 @@ void allocate(void* original_block_address, unsigned int block_size, unsigned in
     {
         set_allocated_block(original_block_address,
                             block_size + leftover_memory, padding + leftover_memory);
-        return;
     }
     else    // split
     {
         set_allocated_block(original_block, block_size, padding);
+        freelist_head = freelist_head->next;
         void* new_block_addr = original_block_address + block_size;
         set_free_block(new_block_addr, leftover_memory, NULL, NULL);
         insert_head(new_block_addr, leftover_memory);
     }
+    return original_block_address;
+}
+
+ics_free_header* ask_for_memory(size_t size, unsigned int requested_size, int* first_request)
+{
+    unsigned int num_of_pages = ceiling(requested_size + PROLOGUE_SIZE + EPILOGUE_SIZE, PAGE_SIZE);
+    // ask for more pages
+    void* new_page_address = ics_inc_brk(num_of_pages);
+    // if asking fail return NULL (errno is already ENOMEM)
+    if(new_page_address == (void*) -1) return NULL;
+    // set epilogue accordingly
+    set_epilogue(ics_get_brk() - EPILOGUE_SIZE);
+    // set available space as one free block (whose next ptr is NULL)
+    void* block_address = new_page_address;
+    if(*first_request){
+        set_prologue(new_page_address);
+        block_address += PROLOGUE_SIZE;
+        *first_request = 0;
+    }
+    unsigned int block_size = (num_of_pages * PAGE_SIZE) - EPILOGUE_SIZE - PROLOGUE_SIZE;
+    set_free_block(block_address, block_size, NULL, NULL);
+    insert_head(block_address, block_size);
+    return block_address;
 }

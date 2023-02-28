@@ -5,7 +5,6 @@
 #include <stdlib.h>
 
 int first_request = 1;
-unsigned int available_mem = 0;
 
 /*
  * The allocator MUST store the head of its free list in this variable. 
@@ -34,45 +33,34 @@ void* ics_malloc(size_t size) {
         errno = EINVAL;
         return NULL;
     }
+
     // get memory size we will need to fulfill request (accounting for first request)
     unsigned int block_size;
     unsigned int padding;
     get_total_block_size(size, &block_size, &padding);
-    // if head ptr is NULL -- no free blocks of memory left
-    if(freelist_head == NULL)
-    {
-        unsigned int num_of_pages = ceiling(block_size + PROLOGUE_SIZE + EPILOGUE_SIZE, PAGE_SIZE);
-        // ask for more pages
-        void* new_page_address = ics_inc_brk(num_of_pages);
-        // if asking fail return NULL (errno is already ENOMEM)
-        if(new_page_address == (void*) -1) return NULL;
-        // set epilogue accordingly
-        set_epilogue(ics_get_brk() - EPILOGUE_SIZE);
-        // set available space as one free block (whose next ptr is NULL)
-        void* block_address = new_page_address;
-        if(first_request){
-            set_prologue(new_page_address);
-            block_address += PROLOGUE_SIZE;
-            first_request = 0;
-        }
-        set_free_block(block_address, (num_of_pages * PAGE_SIZE) - EPILOGUE_SIZE - PROLOGUE_SIZE, NULL, NULL);
-        freelist_head = block_address;
-    }
 
+    int allocated = 0;
+    void* result = NULL;
     // traverse the list to find first fit block
     ics_free_header* cur_header = freelist_head;
     while(cur_header != NULL)
     {
         if(cur_header->header.block_size >= block_size) {
-            allocate(cur_header, block_size, padding);
+            result = allocate(cur_header, block_size, padding);
+            allocated = 1;
             break;
         }
         cur_header = cur_header->next;
     }
 
-    // TODO: need to handle when we reach end of list and need to ask for more memory
+    if(!allocated)
+    {
+        ics_free_header* new_memory = ask_for_memory(size, block_size, &first_request);
+        if(!new_memory)  return NULL;
+        result = allocate(new_memory, block_size, padding);
+    }
 
-    return cur_header;
+    return result;
 }
 
 /*
