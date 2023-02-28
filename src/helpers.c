@@ -88,6 +88,7 @@ void* allocate(void* original_block_address, unsigned int block_size, unsigned i
 {
     ics_free_header* original_block = original_block_address;
     unsigned int leftover_memory = original_block->header.block_size - block_size;
+    freelist_head = freelist_head->next;
     if(leftover_memory < 32) // allocate everything to request
     {
         set_allocated_block(original_block_address,
@@ -96,7 +97,6 @@ void* allocate(void* original_block_address, unsigned int block_size, unsigned i
     else    // split
     {
         set_allocated_block(original_block, block_size, padding);
-        freelist_head = freelist_head->next;
         void* new_block_addr = original_block_address + block_size;
         set_free_block(new_block_addr, leftover_memory, NULL, NULL);
         insert_head(new_block_addr, leftover_memory);
@@ -106,7 +106,8 @@ void* allocate(void* original_block_address, unsigned int block_size, unsigned i
 
 ics_free_header* ask_for_memory(size_t size, unsigned int requested_size, int* first_request)
 {
-    unsigned int num_of_pages = ceiling(requested_size + PROLOGUE_SIZE + EPILOGUE_SIZE, PAGE_SIZE);
+    if(*first_request)  requested_size += PROLOGUE_SIZE + EPILOGUE_SIZE;
+    unsigned int num_of_pages = ceiling(requested_size, PAGE_SIZE);
     // ask for more pages
     void* new_page_address = ics_inc_brk(num_of_pages);
     // if asking fail return NULL (errno is already ENOMEM)
@@ -114,15 +115,17 @@ ics_free_header* ask_for_memory(size_t size, unsigned int requested_size, int* f
     // set epilogue accordingly
     set_epilogue(ics_get_brk() - EPILOGUE_SIZE);
     // set available space as one free block (whose next ptr is NULL)
+    unsigned int block_size = (num_of_pages * PAGE_SIZE);
     void* block_address = new_page_address;
     if(*first_request){
+        block_size -= EPILOGUE_SIZE + PROLOGUE_SIZE;
+
         set_prologue(new_page_address);
         block_address += PROLOGUE_SIZE;
         *first_request = 0;
     }
     else
         block_address -= EPILOGUE_SIZE;
-    unsigned int block_size = (num_of_pages * PAGE_SIZE) - EPILOGUE_SIZE - PROLOGUE_SIZE;
     set_free_block(block_address, block_size, NULL, NULL);
     insert_head(block_address, block_size);
     return block_address;
