@@ -114,12 +114,14 @@ ics_free_header* ask_for_memory(size_t size, unsigned int requested_size, int* f
     // set epilogue accordingly
     set_epilogue(ics_get_brk() - EPILOGUE_SIZE);
     // set available space as one free block (whose next ptr is NULL)
-    void* block_address = new_page_address - EPILOGUE_SIZE;
+    void* block_address = new_page_address;
     if(*first_request){
         set_prologue(new_page_address);
         block_address += PROLOGUE_SIZE;
         *first_request = 0;
     }
+    else
+        block_address -= EPILOGUE_SIZE;
     unsigned int block_size = (num_of_pages * PAGE_SIZE) - EPILOGUE_SIZE - PROLOGUE_SIZE;
     set_free_block(block_address, block_size, NULL, NULL);
     insert_head(block_address, block_size);

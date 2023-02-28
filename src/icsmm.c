@@ -60,7 +60,7 @@ void* ics_malloc(size_t size) {
         result = allocate(new_memory, block_size, padding);
     }
 
-    return result;
+    return result + HEADER_SIZE;
 }
 
 /*
