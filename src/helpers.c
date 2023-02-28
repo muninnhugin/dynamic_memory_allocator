@@ -114,7 +114,7 @@ ics_free_header* ask_for_memory(size_t size, unsigned int requested_size, int* f
     // set epilogue accordingly
     set_epilogue(ics_get_brk() - EPILOGUE_SIZE);
     // set available space as one free block (whose next ptr is NULL)
-    void* block_address = new_page_address;
+    void* block_address = new_page_address - EPILOGUE_SIZE;
     if(*first_request){
         set_prologue(new_page_address);
         block_address += PROLOGUE_SIZE;
