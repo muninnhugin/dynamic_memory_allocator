@@ -26,5 +26,7 @@ void set_free_block(void* block_address, unsigned int block_size, ics_free_heade
 void insert_head(void* block_address, unsigned int block_size);
 void* allocate(void* original_block_address, unsigned int block_size, unsigned int padding);
 ics_free_header* ask_for_memory(size_t size, unsigned int requested_size, int* first_request);
+int is_free_block(void* block_address);
+void remove_from_freelist(void* block_address);
 
 #endif

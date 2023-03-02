@@ -130,3 +130,31 @@ ics_free_header* ask_for_memory(size_t size, unsigned int requested_size, int* f
     insert_head(block_address, block_size);
     return block_address;
 }
+
+int is_free_block(void* block_address)
+{
+    ics_header* header = block_address;
+    int allocated_bit = header->block_size % 2;
+    if(allocated_bit)   return 0;
+    return 1;
+}
+
+void remove_from_freelist(void* block_address)
+{
+    ics_free_header* ptr = freelist_head;
+    if(ptr == block_address)
+        freelist_head = ptr->next;
+    ics_free_header* prev = ptr;
+    while(ptr != NULL)
+    {
+        if(ptr == block_address)
+        {
+            prev->next = ptr->next;
+            ptr->next->prev = prev;
+            break;
+        }
+        prev = ptr;
+        ptr = ptr->next;
+    }
+}
+

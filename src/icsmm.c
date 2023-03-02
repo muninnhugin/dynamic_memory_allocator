@@ -74,8 +74,30 @@ void* ics_malloc(size_t size) {
  * @return 0 upon success, -1 if error and set errno accordingly.
  */
 int ics_free(void *ptr) {
-    // research immediate reverse coalescing
-    return -99999;
+    // set free
+    // coalesce
+    // add new block to list
+    // remove old coalesced block from list
+
+    // call set free block (address, size, prev, next)
+        // prev, next is NULL
+        // we need to calculate address and size
+    void* block_address = ptr;
+    unsigned int block_size = ((ics_header*)ptr)->block_size;
+
+    ics_header* cur_header = ptr;
+    ics_header* next_block_header = ptr + cur_header->block_size;
+    if(is_free_block(next_block_header))
+    {
+        block_size += next_block_header->block_size;
+        // remove coalesced block from list
+        remove_from_freelist(next_block_header);
+    }
+
+    set_free_block(block_address, block_size, NULL, NULL);
+    insert_head(block_address, block_size);
+
+    return 0;
 }
 
 /********************** EXTRA CREDIT ***************************************/
