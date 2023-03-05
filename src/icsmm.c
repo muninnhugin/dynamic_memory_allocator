@@ -82,15 +82,33 @@ int ics_free(void *ptr) {
     // call set free block (address, size, prev, next)
         // prev, next is NULL
         // we need to calculate address and size
-    void* block_address = ptr;
-    unsigned int block_size = ((ics_header*)ptr)->block_size;
+    void* block_address = ptr - HEADER_SIZE;
+    ics_header* header =  block_address;
+    if(header->hid != HEADER_MAGIC) {
+        errno = EINVAL;
+        return -1;
+    }
+    unsigned int block_size = header->block_size;
+    if((block_size % 2) != 1)   {
+        errno = EINVAL;
+        return -1;
+    }
+    block_size -= 1;
+    ics_footer* footer = block_address + block_size - FOOTER_SIZE;
+    if(footer->fid != FOOTER_MAGIC)  {
+        errno = EINVAL;
+        return -1;
+    }
+    if(footer->block_size % 2 != 1)
+    {
+        errno = EINVAL;
+        return -1;
+    }
 
-    ics_header* cur_header = ptr;
-    ics_header* next_block_header = ptr + cur_header->block_size;
+    ics_header* next_block_header = block_address + block_size;
     if(is_free_block(next_block_header))
     {
         block_size += next_block_header->block_size;
-        // remove coalesced block from list
         remove_from_freelist(next_block_header);
     }
 

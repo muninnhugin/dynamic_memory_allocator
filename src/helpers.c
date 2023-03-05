@@ -88,7 +88,6 @@ void* allocate(void* original_block_address, unsigned int block_size, unsigned i
 {
     ics_free_header* original_block = original_block_address;
     unsigned int leftover_memory = original_block->header.block_size - block_size;
-    freelist_head = freelist_head->next;
     if(leftover_memory < 32) // allocate everything to request
     {
         set_allocated_block(original_block_address,
@@ -101,6 +100,7 @@ void* allocate(void* original_block_address, unsigned int block_size, unsigned i
         set_free_block(new_block_addr, leftover_memory, NULL, NULL);
         insert_head(new_block_addr, leftover_memory);
     }
+    remove_from_freelist(original_block_address);
     return original_block_address;
 }
 
@@ -150,7 +150,8 @@ void remove_from_freelist(void* block_address)
         if(ptr == block_address)
         {
             prev->next = ptr->next;
-            ptr->next->prev = prev;
+            if(ptr->next != NULL)
+                ptr->next->prev = prev;
             break;
         }
         prev = ptr;
