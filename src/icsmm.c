@@ -82,12 +82,9 @@ int ics_free(void *ptr) {
     unsigned int block_size = header->block_size;
     block_size -= 1;
 
-    ics_header* next_block_header = block_address + block_size;
-    if(is_free_block(next_block_header))
-    {
-        block_size += next_block_header->block_size;
-        remove_from_freelist(next_block_header);
-    }
+    higher_address_coalesce(block_address, &block_size);
+    /********************** UNCOMMENT FOR EXTRA CREDIT ************************************/
+    //lower_address_coalesce(&block_address, &block_size);
 
     set_free_block(block_address, block_size, NULL, NULL);
     insert_head(block_address, block_size);
@@ -115,5 +112,32 @@ int ics_free(void *ptr) {
  * block is free'd and return NULL.
  */
 void *ics_realloc(void *ptr, size_t size) {
-    return NULL;
+    void* block_address = ptr - HEADER_SIZE;
+    if(is_not_valid_allocated_block(block_address))
+        return NULL;
+    if(size == 0)
+    {
+        ics_free(block_address);
+        return NULL;
+    }
+
+    ics_header* header = block_address;
+    unsigned int block_size = header->block_size;
+    higher_address_coalesce(block_address, &block_size);
+    unsigned int usable_payload = block_size - FOOTER_SIZE - HEADER_SIZE;
+    if(usable_payload >= size)
+    {
+        allocate(block_address, block_size, usable_payload - size);
+        return block_address + HEADER_SIZE;
+    }
+
+    // TODO: implement what to do if new coalesced block cannot accommodate resize
+    // consider calling ics_malloc()
+    // if malloc unsuccessful
+        // do as requirements
+    // copy payload of old block to new block
+    // set old block as free
+    // test of course
+
+    return block_address + HEADER_SIZE;
 }

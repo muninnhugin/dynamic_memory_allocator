@@ -88,7 +88,7 @@ void* allocate(void* original_block_address, unsigned int block_size, unsigned i
 {
     ics_free_header* original_block = original_block_address;
     unsigned int leftover_memory = original_block->header.block_size - block_size;
-    if(leftover_memory < 32) // allocate everything to request
+    if(leftover_memory < MIN_BLOCK_SIZE) // allocate everything to request
     {
         set_allocated_block(original_block_address,
                             block_size + leftover_memory, padding + leftover_memory);
@@ -182,4 +182,26 @@ int is_not_valid_allocated_block(void* block_address)
         return 1;
     }
     return 0;
+}
+
+void higher_address_coalesce(void* block_address, unsigned int* block_size)
+{
+    ics_header* next_block_header = block_address + *block_size;
+    if(is_free_block(next_block_header))
+    {
+        *block_size += next_block_header->block_size;
+        remove_from_freelist(next_block_header);
+    }
+}
+
+void lower_address_coalesce(void** block_address_ptr, unsigned int* block_size)
+{
+    ics_footer* previous_block_footer = *block_address_ptr - FOOTER_SIZE;
+    unsigned int previous_block_size = (previous_block_footer->block_size >> 1) << 1;
+    void* previous_block_address = *block_address_ptr - previous_block_size;
+    if(is_free_block(previous_block_address)) {
+        *block_size += previous_block_size;
+        *block_address_ptr = previous_block_address;
+        remove_from_freelist(previous_block_address);
+    }
 }
