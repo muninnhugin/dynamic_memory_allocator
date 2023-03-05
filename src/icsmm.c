@@ -111,6 +111,7 @@ int ics_free(void *ptr) {
  * If ics_realloc is called with a valid pointer and a size of 0, the allocated     
  * block is free'd and return NULL.
  */
+// TODO: test for all cases of this
 void *ics_realloc(void *ptr, size_t size) {
     void* block_address = ptr - HEADER_SIZE;
     if(is_not_valid_allocated_block(block_address))
@@ -122,7 +123,9 @@ void *ics_realloc(void *ptr, size_t size) {
     }
 
     ics_header* header = block_address;
-    unsigned int block_size = header->block_size;
+    unsigned int block_size = header->block_size - 1;
+    unsigned int payload = block_size - header->padding_amount;
+
     higher_address_coalesce(block_address, &block_size);
     unsigned int usable_payload = block_size - FOOTER_SIZE - HEADER_SIZE;
     if(usable_payload >= size)
@@ -131,13 +134,15 @@ void *ics_realloc(void *ptr, size_t size) {
         return block_address + HEADER_SIZE;
     }
 
-    // TODO: implement what to do if new coalesced block cannot accommodate resize
-    // consider calling ics_malloc()
-    // if malloc unsuccessful
-        // do as requirements
-    // copy payload of old block to new block
-    // set old block as free
-    // test of course
+    void* new_block = ics_malloc(size);
+    if(new_block != NULL)
+    {
+        memcpy(new_block, block_address + HEADER_SIZE, payload);
+        set_free_block(block_address, block_size, NULL, NULL);
+        insert_head(block_address, block_size);
+    }
+    else
+        set_allocated_block(block_address, block_size, usable_payload - size);
 
-    return block_address + HEADER_SIZE;
+    return new_block;
 }
