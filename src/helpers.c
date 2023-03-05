@@ -159,3 +159,27 @@ void remove_from_freelist(void* block_address)
     }
 }
 
+int is_not_valid_allocated_block(void* block_address)
+{
+    ics_header* header = block_address;
+
+    if(header->hid != HEADER_MAGIC) {
+        errno = EINVAL;
+        return 1;
+    }
+    if((header->block_size % 2) != 1)   {
+        errno = EINVAL;
+        return 1;
+    }
+    ics_footer* footer = block_address + header->block_size - 1 - FOOTER_SIZE;
+    if(footer->fid != FOOTER_MAGIC)  {
+        errno = EINVAL;
+        return 1;
+    }
+    if((footer->block_size % 2) != 1)
+    {
+        errno = EINVAL;
+        return 1;
+    }
+    return 0;
+}

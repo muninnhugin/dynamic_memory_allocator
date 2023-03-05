@@ -28,5 +28,6 @@ void* allocate(void* original_block_address, unsigned int block_size, unsigned i
 ics_free_header* ask_for_memory(size_t size, unsigned int requested_size, int* first_request);
 int is_free_block(void* block_address);
 void remove_from_freelist(void* block_address);
+int is_not_valid_allocated_block(void* block_address);
 
 #endif
